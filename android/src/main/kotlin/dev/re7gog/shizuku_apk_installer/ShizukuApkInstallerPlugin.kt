@@ -55,6 +55,7 @@ class ShizukuApkInstallerPlugin: FlutterPlugin, MethodCallHandler {
                 worker!!.setInstallerMode(
                     when (mode) {
                         "dhizuku" -> InstallerMode.DHIZUKU
+                        "auto" -> InstallerMode.AUTO
                         else -> InstallerMode.SHIZUKU
                     }
                 )

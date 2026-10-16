@@ -161,6 +161,11 @@ class ShizukuWorker(private val appContext: Context) {
         return when (installerMode) {
             InstallerMode.DHIZUKU -> checkDhizukuPermission()
             InstallerMode.SHIZUKU -> checkShizukuPermission()
+            InstallerMode.AUTO -> {
+                ensureShizukuInitialized()
+                if (isBinderAvailable) checkShizukuPermission()
+                else checkDhizukuPermission()
+            }
         }
     }
 
@@ -174,7 +179,31 @@ class ShizukuWorker(private val appContext: Context) {
     }
 
     private fun useDhizukuBackend(): Boolean =
-        installerMode == InstallerMode.DHIZUKU && ensureDhizukuInitialized()
+        when (installerMode) {
+            InstallerMode.DHIZUKU -> ensureDhizukuInitialized()
+            InstallerMode.SHIZUKU -> false
+            InstallerMode.AUTO -> !isBinderAvailable && ensureDhizukuInitialized()
+        }
+
+    /**
+     * Initializes the backend selected for the current mode.
+     * Returns false only when the mode cannot fall back and its backend is
+     * unavailable (Dhizuku-only without Dhizuku, or auto with neither).
+     */
+    private fun prepareInstallerBackend(): Boolean {
+        if (installerMode == InstallerMode.DHIZUKU) {
+            return ensureDhizukuInitialized()
+        }
+        ensureShizukuInitialized()
+        if (isBinderAvailable) {
+            isRoot = Shizuku.getUid() == 0
+            return true
+        }
+        if (installerMode == InstallerMode.AUTO && ensureDhizukuInitialized()) {
+            return true
+        }
+        return installerMode == InstallerMode.SHIZUKU
+    }
 
     // Thanks to https://github.com/LSPosed/LSPatch and https://gitlab.com/AuroraOSS/AuroraStore
 
@@ -262,10 +291,7 @@ class ShizukuWorker(private val appContext: Context) {
      * @param fakeInstallSource set install source app package name
      */
     suspend fun installAPKs(apkURIs: List<String>, fakeInstallSource: String = ""): Int {
-        if (installerMode == InstallerMode.SHIZUKU) {
-            ensureShizukuInitialized()
-            isRoot = Shizuku.getUid() == 0
-        } else if (!ensureDhizukuInitialized()) {
+        if (!prepareInstallerBackend()) {
             return PackageInstaller.STATUS_FAILURE
         }
         this.fakeInstallSource = fakeInstallSource
@@ -319,9 +345,7 @@ class ShizukuWorker(private val appContext: Context) {
      */
     @SuppressLint("MissingPermission")
     suspend fun uninstallPackage(packageName: String): Int {
-        if (installerMode == InstallerMode.SHIZUKU) {
-            ensureShizukuInitialized()
-        } else if (!ensureDhizukuInitialized()) {
+        if (!prepareInstallerBackend()) {
             return PackageInstaller.STATUS_FAILURE
         }
         val dhizukuBackend = useDhizukuBackend()

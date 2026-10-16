@@ -1,6 +1,6 @@
 name: shizuku_apk_installer
 description: "Flutter plugin for installing Android APKs using Shizuku and Dhizuku API."
-version: 1.3.0
+version: 1.4.0
 homepage:
 
 environment:

@@ -6,18 +6,20 @@ Also you can pretend to be another package (like Google Play) when installing (o
 
 ## Installer mode
 
-By default the plugin uses Shizuku/Sui. To use Dhizuku exclusively, or to offer separate Dhizuku and Shizuku options in your app, call [setInstallerMode] before [checkPermission] or install calls:
+By default the plugin uses Shizuku/Sui. To use Dhizuku exclusively, prefer Shizuku with a Dhizuku fallback, or offer separate options in your app, call [setInstallerMode] before [checkPermission] or install calls:
 
 ```dart
 import 'package:shizuku_apk_installer/shizuku_apk_installer.dart';
 
 final installer = ShizukuApkInstaller();
 
-await installer.setInstallerMode(InstallerMode.dhizuku);
-// or InstallerMode.shizuku
+await installer.setInstallerMode(InstallerMode.auto);
+// or InstallerMode.dhizuku, or InstallerMode.shizuku
 
 final permission = await installer.checkPermission();
 ```
+
+[InstallerMode.auto] prefers Shizuku/Sui and falls back to Dhizuku when Shizuku is unavailable; [InstallerMode.shizuku] and [InstallerMode.dhizuku] never use the other backend.
 
 **Backward compatibility:** versions before 1.3.0 attempted Dhizuku first automatically. If your app relied on that behavior, call `setInstallerMode(InstallerMode.dhizuku)` before permission and install calls.
 

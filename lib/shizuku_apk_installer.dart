@@ -23,10 +23,12 @@ class ShizukuApkInstaller {
     return ShizukuApkInstallerPlatform.instance.checkPermission();
   }
 
-  /// Select Dhizuku-only or Shizuku/Sui-only backend before [checkPermission] or install calls.
+  /// Select the installer backend before [checkPermission] or install calls.
   ///
-  /// Defaults to [InstallerMode.shizuku]. Apps that previously relied on implicit
-  /// Dhizuku selection must call this with [InstallerMode.dhizuku] first.
+  /// [InstallerMode.shizuku] uses Shizuku/Sui only, [InstallerMode.dhizuku]
+  /// uses Dhizuku only, and [InstallerMode.auto] prefers Shizuku/Sui and falls
+  /// back to Dhizuku when Shizuku is unavailable. Defaults to
+  /// [InstallerMode.shizuku].
   Future<void> setInstallerMode(InstallerMode mode) {
     return ShizukuApkInstallerPlatform.instance.setInstallerMode(mode.name);
   }

@@ -1,3 +1,8 @@
+## 1.4.0
+
+* Add `InstallerMode.auto`: prefers Shizuku/Sui and falls back to Dhizuku when Shizuku is unavailable
+* Route permission checks, installs and uninstalls through a single backend preparation step
+
 ## 1.3.0
 
 * Add `InstallerMode` enum and `setInstallerMode()` to choose Dhizuku or Shizuku/Sui explicitly
