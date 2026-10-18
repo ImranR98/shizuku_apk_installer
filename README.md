@@ -4,6 +4,8 @@ Flutter plugin for installing Android APKs using Dhizuku/Shizuku API.
 With this plugin you can install and uninstall apps (APKs and AABs) in background without asking user.
 Also you can pretend to be another package (like Google Play) when installing (only Shizuku).
 
+The `fakeInstallSource` argument applies to each install independently. An empty value uses the default ADB shell source. It changes the recorded installer package without changing the APK signature or granting permissions; Dhizuku does not support this option.
+
 ## Installer mode
 
 By default the plugin uses Shizuku/Sui. To use Dhizuku exclusively, prefer Shizuku with a Dhizuku fallback, or offer separate options in your app, call [setInstallerMode] before [checkPermission] or install calls:
