@@ -70,6 +70,7 @@ class ShizukuApkInstallerPlugin: FlutterPlugin, MethodCallHandler {
             "installAPKs" -> {
                 val apkFilesURIs: List<String>? = call.argument("apkFilesURIs")
                 val fakeInstallSource: String? = call.argument("fakeInstallSource")
+                val packageName: String? = call.argument("packageName")
                 if (apkFilesURIs == null || fakeInstallSource == null) {
                     result!!.error(
                         "error",
@@ -79,7 +80,7 @@ class ShizukuApkInstallerPlugin: FlutterPlugin, MethodCallHandler {
                     return
                 }
                 job = CoroutineScope(Dispatchers.Default).async {
-                    val res = worker!!.installAPKs(apkFilesURIs, fakeInstallSource)
+                    val res = worker!!.installAPKs(apkFilesURIs, fakeInstallSource, packageName)
                     result!!.success(res)
                 }
             }

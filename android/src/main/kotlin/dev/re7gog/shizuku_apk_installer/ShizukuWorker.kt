@@ -250,8 +250,11 @@ class ShizukuWorker(private val appContext: Context) {
         }
     }
 
-    private val sessionParams: PackageInstaller.SessionParams by lazy {
+    private fun createSessionParams(packageName: String?): PackageInstaller.SessionParams {
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+        // Android resolves the install volume during createSession, before any APK
+        // is written. Identifying an update here lets it retain the existing volume.
+        params.setAppPackageName(packageName)
         var flags = Refine.unsafeCast<PackageInstallerHidden.SessionParamsHidden>(params).installFlags
 
         flags = flags or PackageManagerHidden.INSTALL_ALLOW_TEST or PackageManagerHidden.INSTALL_REPLACE_EXISTING
@@ -260,18 +263,22 @@ class ShizukuWorker(private val appContext: Context) {
         }
 
         Refine.unsafeCast<PackageInstallerHidden.SessionParamsHidden>(params).installFlags = flags
-        params
+        return params
     }
 
-    private fun createPackageInstallerSession(fakeInstallSource: String): PackageInstaller.Session {
-        val sessionId = createPackageInstaller(fakeInstallSource).createSession(sessionParams)
+    private fun createPackageInstallerSession(
+        fakeInstallSource: String,
+        packageName: String?
+    ): PackageInstaller.Session {
+        val sessionId = createPackageInstaller(fakeInstallSource)
+            .createSession(createSessionParams(packageName))
         val iSession = IPackageInstallerSession.Stub.asInterface(
             iPackageInstaller.openSession(sessionId).asShizukuBinder())
         return Refine.unsafeCast(PackageInstallerHidden.SessionHidden(iSession))
     }
 
-    private fun createPackageInstallerSessionD(): PackageInstaller.Session {
-        val sessionId = packageInstallerD.createSession(sessionParams)
+    private fun createPackageInstallerSessionD(packageName: String?): PackageInstaller.Session {
+        val sessionId = packageInstallerD.createSession(createSessionParams(packageName))
         val iSession = IPackageInstallerSession.Stub.asInterface(
             iPackageInstallerD.openSession(sessionId).asDhizukuBinder())
         return Refine.unsafeCast(PackageInstallerHidden.SessionHidden(iSession))
@@ -279,20 +286,26 @@ class ShizukuWorker(private val appContext: Context) {
 
     private fun createPackageInstallerSessionForMode(
         dhizukuBackend: Boolean,
-        fakeInstallSource: String
+        fakeInstallSource: String,
+        packageName: String?
     ): PackageInstaller.Session {
         return if (dhizukuBackend)
-            createPackageInstallerSessionD()
+            createPackageInstallerSessionD(packageName)
         else
-            createPackageInstallerSession(fakeInstallSource)
+            createPackageInstallerSession(fakeInstallSource, packageName)
     }
 
     /**
      * Install a list of APK splits (AAB) using their URIs.
      * The permission must have already been checked!
      * @param fakeInstallSource set install source app package name
+     * @param packageName target package used for install volume selection
      */
-    suspend fun installAPKs(apkURIs: List<String>, fakeInstallSource: String = ""): Int {
+    suspend fun installAPKs(
+        apkURIs: List<String>,
+        fakeInstallSource: String = "",
+        packageName: String? = null
+    ): Int {
         if (!prepareInstallerBackend()) {
             return PackageInstaller.STATUS_FAILURE
         }
@@ -300,7 +313,9 @@ class ShizukuWorker(private val appContext: Context) {
         val dhizukuBackend = useDhizukuBackend()
         withContext(Dispatchers.IO) {
             runCatching {
-                createPackageInstallerSessionForMode(dhizukuBackend, fakeInstallSource).use { session ->
+                createPackageInstallerSessionForMode(
+                    dhizukuBackend, fakeInstallSource, packageName
+                ).use { session ->
                     apkURIs.forEachIndexed { index, uriString ->
                         val uri = uriString.toUri()
                         val stream = (if (dhizukuBackend)

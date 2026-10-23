@@ -34,15 +34,19 @@ class ShizukuApkInstaller {
   }
 
   /// Install APK by its URI
+  /// [packageName] identifies the target before Android chooses the install volume.
+  /// For updates, pass the package name from the APK to retain its current volume.
   /// [fakeInstallSource] - Set "installed by ..." package property
-  Future<int?> installAPK(String apkFileURI, String fakeInstallSource) {
-    return ShizukuApkInstallerPlatform.instance.installAPKs([apkFileURI], fakeInstallSource);
+  Future<int?> installAPK(String apkFileURI, String fakeInstallSource, {String? packageName}) {
+    return ShizukuApkInstallerPlatform.instance.installAPKs([apkFileURI], fakeInstallSource, packageName: packageName);
   }
 
   /// Install list of AAB splits of one app by their URIs
+  /// [packageName] identifies the target before Android chooses the install volume.
+  /// For updates, pass the package name from the APK to retain its current volume.
   /// [fakeInstallSource] - Set "installed by ..." package property
-  Future<int?> installAABSplits(List<String> aabSplitsFilesURIs, String fakeInstallSource) {
-    return ShizukuApkInstallerPlatform.instance.installAPKs(aabSplitsFilesURIs, fakeInstallSource);
+  Future<int?> installAABSplits(List<String> aabSplitsFilesURIs, String fakeInstallSource, {String? packageName}) {
+    return ShizukuApkInstallerPlatform.instance.installAPKs(aabSplitsFilesURIs, fakeInstallSource, packageName: packageName);
   }
 
   /// Uninstall package by its name
