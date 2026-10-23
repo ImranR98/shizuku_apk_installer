@@ -54,6 +54,9 @@ android {
         implementation("dev.rikka.tools.refine:runtime:4.4.0")
         compileOnly("dev.rikka.hidden:stub:4.4.0")
         implementation("org.lsposed.hiddenapibypass:hiddenapibypass:6.1")
+        testImplementation("junit:junit:4.13.2")
+        testImplementation("org.robolectric:robolectric:4.16.1")
+        testCompileOnly("dev.rikka.hidden:stub:4.4.0")
     }
 }
 

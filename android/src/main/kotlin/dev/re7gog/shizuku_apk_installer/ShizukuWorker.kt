@@ -47,7 +47,6 @@ class ShizukuWorker(private val appContext: Context) {
     private val requestPermissionMutex by lazy { Mutex(locked = true) }
     private var permissionGranted = false
     private var isRoot = false
-    private var fakeInstallSource = ""
 
     private var dInitSucceeded = false
     private var dhizukuInitialized = false
@@ -225,12 +224,12 @@ class ShizukuWorker(private val appContext: Context) {
         IPackageInstaller.Stub.asInterface(iPackageManager.packageInstaller.asDhizukuBinder())
     }
 
-    private val packageInstaller: PackageInstaller by lazy {
+    private fun createPackageInstaller(fakeInstallSource: String = ""): PackageInstaller {
         // Default to the ADB shell package to more accurately mimic a real ADB install
         val installerPackageName = if (fakeInstallSource == "")
             "com.android.shell" else fakeInstallSource
         val userId = if (!isRoot) Process.myUserHandle().hashCode() else 0
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Refine.unsafeCast(PackageInstallerHidden(
                 iPackageInstaller, installerPackageName, contextS.attributionTag, userId))
         } else {
@@ -264,8 +263,8 @@ class ShizukuWorker(private val appContext: Context) {
         params
     }
 
-    private fun createPackageInstallerSession(): PackageInstaller.Session {
-        val sessionId = packageInstaller.createSession(sessionParams)
+    private fun createPackageInstallerSession(fakeInstallSource: String): PackageInstaller.Session {
+        val sessionId = createPackageInstaller(fakeInstallSource).createSession(sessionParams)
         val iSession = IPackageInstallerSession.Stub.asInterface(
             iPackageInstaller.openSession(sessionId).asShizukuBinder())
         return Refine.unsafeCast(PackageInstallerHidden.SessionHidden(iSession))
@@ -278,11 +277,14 @@ class ShizukuWorker(private val appContext: Context) {
         return Refine.unsafeCast(PackageInstallerHidden.SessionHidden(iSession))
     }
 
-    private fun createPackageInstallerSessionForMode(): PackageInstaller.Session {
-        return if (useDhizukuBackend())
+    private fun createPackageInstallerSessionForMode(
+        dhizukuBackend: Boolean,
+        fakeInstallSource: String
+    ): PackageInstaller.Session {
+        return if (dhizukuBackend)
             createPackageInstallerSessionD()
         else
-            createPackageInstallerSession()
+            createPackageInstallerSession(fakeInstallSource)
     }
 
     /**
@@ -294,12 +296,11 @@ class ShizukuWorker(private val appContext: Context) {
         if (!prepareInstallerBackend()) {
             return PackageInstaller.STATUS_FAILURE
         }
-        this.fakeInstallSource = fakeInstallSource
         var status = PackageInstaller.STATUS_FAILURE
         val dhizukuBackend = useDhizukuBackend()
         withContext(Dispatchers.IO) {
             runCatching {
-                createPackageInstallerSessionForMode().use { session ->
+                createPackageInstallerSessionForMode(dhizukuBackend, fakeInstallSource).use { session ->
                     apkURIs.forEachIndexed { index, uriString ->
                         val uri = uriString.toUri()
                         val stream = (if (dhizukuBackend)
@@ -362,7 +363,7 @@ class ShizukuWorker(private val appContext: Context) {
                     if (dhizukuBackend)
                         packageInstallerD.uninstall(packageName, intentSender)
                     else
-                        packageInstaller.uninstall(packageName, intentSender)
+                        createPackageInstaller().uninstall(packageName, intentSender)
                 }
                 result?.let {
                     status = it.getIntExtra(
